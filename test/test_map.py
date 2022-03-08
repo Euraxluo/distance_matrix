@@ -10,9 +10,9 @@ from .conftest import register
 from unittest import TestCase
 
 from .conftest import *
-from distance_matrix.services.geo import *
-from distance_matrix.services.navigation import *
-from distance_matrix.services.osrm import *
+from amap_distance_matrix.services.geo import *
+from amap_distance_matrix.services.navigation import *
+from amap_distance_matrix.services.osrm import *
 
 
 async def async_geo_addr_city_test():

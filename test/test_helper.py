@@ -7,7 +7,7 @@
 from .conftest import register
 from unittest import TestCase
 
-from distance_matrix.helper import *
+from amap_distance_matrix.helper import *
 
 
 class TestHelper(TestCase):

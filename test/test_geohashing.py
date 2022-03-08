@@ -7,8 +7,8 @@
 from .conftest import register
 from unittest import TestCase
 
-from distance_matrix.services.geo import *
-from distance_matrix.services.geohashing import *
+from amap_distance_matrix.services.geo import *
+from amap_distance_matrix.services.geohashing import *
 
 
 class Test(TestCase):

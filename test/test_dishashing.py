@@ -6,9 +6,9 @@
 
 from .conftest import register
 from unittest import TestCase, skip
-from distance_matrix.services.geo import *
-from distance_matrix.services.dishashing import *
-from distance_matrix.schemas.dishashing import *
+from amap_distance_matrix.services.geo import *
+from amap_distance_matrix.services.dishashing import *
+from amap_distance_matrix.schemas.dishashing import *
 
 
 class Test(TestCase):
