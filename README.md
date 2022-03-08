@@ -9,6 +9,6 @@
 - repository = "https://github.com/Euraxluo/distance_matrix"
 
 #### install
-`pip install distance-matrix`
+`pip install amap-distance-matrix`
 
 ![](https://gitee.com/Euraxluo/images/raw/master/pycharm/MIK-RHfzjB.png)
