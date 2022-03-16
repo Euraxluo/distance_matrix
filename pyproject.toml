@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "amap_distance_matrix"
-version = "0.2.1"
+version = "0.2.2"
 description = "amap distance matrix service based on Redis and MySQL"
 authors = ["Euraxluo <euraxluo@outlook.com>"]
 license = "The MIT LICENSE"
@@ -16,6 +16,7 @@ aiohttp = "^3.8.1"
 sqlalchemy-pydantic-orm = "^0.1.0"
 polyline = "^1.4.0"
 python-geohash = "^0.8.5"
+PyMySQL = "^1.0.2"
 
 [tool.poetry.dev-dependencies]
 
