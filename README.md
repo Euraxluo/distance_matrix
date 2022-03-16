@@ -1,6 +1,6 @@
 ### distance_matrix 
 - name = "amap_distance_matrix"
-- version = "0.2.0"
+- version = "0.2.1"
 - description = "amap distance matrix service based on Redis and MySQL"
 - authors = ["Euraxluo <euraxluo@outlook.com>"]
 - license = "The MIT LICENSE"
