@@ -4,8 +4,10 @@
 # author: Euraxluo
 
 
+import time
 import datetime
 import itertools
+import functools
 import geohash
 from math import radians, cos, sin, asin, sqrt
 from typing import *
@@ -95,45 +97,78 @@ def geo_decode(hashcode: str):
     return geohash.decode(hashcode)
 
 
-def point_pairing_sorted(*points: Union[List[float], Tuple[float]]) -> List[Tuple[Tuple[float], ...]]:
+def distinct_point(*points: Union[List[float], Tuple[float]]) -> Tuple[Tuple[float]]:
+    # 1.去重
+    distinct_point_list: List[Tuple[float]] = []
+
+    for point in points:
+        if isinstance(point, list):
+            point = tuple(point)
+        if point not in distinct_point_list:
+            distinct_point_list.append(point)
+    distinct_point_list.sort(key=lambda x: str(x[0]) + '_' + str(x[-1]))
+    return tuple(distinct_point_list)
+
+
+def ignore_unhashable(func):
+    uncached = func.__wrapped__
+    attributes = functools.WRAPPER_ASSIGNMENTS + ('cache_info', 'cache_clear')
+
+    @functools.wraps(func, assigned=attributes)
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except TypeError as error:
+            if 'unhashable type' in str(error):
+                return uncached(*args, **kwargs)
+            raise
+
+    wrapper.__uncached__ = uncached
+    return wrapper
+
+
+@ignore_unhashable
+@functools.lru_cache()
+def points_permutations_sorted(distinct_point_list: Tuple[Tuple[float]]) -> Tuple[Tuple[Tuple[float], ...]]:
+    # 2. 获取全排列数据
+    adjacency_list: Dict[Tuple[float], Set[Tuple[float]]] = {}
+    all_edges = set()
+    for edge in itertools.permutations(distinct_point_list, 2):
+        if edge[0] not in adjacency_list:
+            adjacency_list[edge[0]] = set()
+        adjacency_list[edge[0]].add(edge[1])
+        all_edges.add(edge)
+    # 3.collection
+    sorted_edge: List[Tuple[Tuple[float], ...]] = []
+    while len(all_edges) > 0:
+        if not sorted_edge or sorted_edge[-1][-1] not in adjacency_list:
+            # 如果结果集合为空,则随便取一个数据
+            edge = all_edges.pop()
+            start_node = edge[0]
+            if sorted_edge and sorted_edge[-1][-1]:
+                sorted_edge.append((sorted_edge[-1][-1], start_node))
+            # 从邻接表中移除一个边
+            adjacency_list[edge[0]].remove(edge[1])
+        else:
+            # 获取排序边集合的最后一个元素的终点,作为起点
+            start_node = sorted_edge[-1][-1]
+            # 据此起点,从邻接表中获取并弹出end_node
+            end_node = adjacency_list[start_node].pop()
+            edge = (start_node, end_node)
+            # 将该边从所有集合中去掉
+            all_edges.remove(edge)
+        if len(adjacency_list[start_node]) == 0:
+            del adjacency_list[start_node]
+        sorted_edge.append(edge)
+    return tuple(sorted_edge)
+
+
+def point_pairing_sorted(*points: Union[List[float], Tuple[float]]) -> Tuple[Tuple[Tuple[float], ...]]:
     """
     通过点的全排列,得到待排序的点对
     通过分配收集算法,将点对排序
     :param points:待排列的点序列
     :return:
     """
-    # 1.去重
-    distinct_point_set: Set[Tuple[float]] = set()
-
-    for point in points:
-        if isinstance(point, list):
-            distinct_point_set.add(tuple(point))
-            continue
-        distinct_point_set.add(point)
-
-    # 2. 获取全排列数据
-    point_bucket: Dict[Tuple[float], Set[Tuple[Tuple[float]]]] = {}
-    not_sorted_set = set()
-    for point in itertools.permutations(distinct_point_set, 2):
-        if point[0] not in point_bucket:
-            point_bucket[point[0]] = set()
-        point_bucket[point[0]].add(point)
-        not_sorted_set.add(point)
-
-    # 3.collection
-    sorted_collection: List[Tuple[Tuple[float], ...]] = []
-    while not_sorted_set:
-        if not sorted_collection:
-            # 如果结果集合为空,则随便取一个数据
-            start_index = not_sorted_set.pop()
-            # 从桶中移除开始索引
-            point_bucket[start_index[0]].remove(start_index)
-        else:
-            # 获取结果集合的最后一个元素的终点,作为起点的key
-            start_key = sorted_collection[-1][-1]
-            # 据此key,获取并弹出start index
-            start_index = point_bucket[start_key].pop()
-            not_sorted_set.remove(start_index)
-        sorted_collection.append(start_index)
-
-    return sorted_collection
+    distinct_point_list = distinct_point(*points)
+    return points_permutations_sorted(distinct_point_list)

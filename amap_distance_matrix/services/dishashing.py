@@ -7,9 +7,12 @@ import redis
 import json
 import time
 import copy
+import threading
 from amap_distance_matrix.services.register import register
 from amap_distance_matrix.schemas.dishashing import *
 from amap_distance_matrix.helper import *
+
+script_lock = threading.Lock()
 
 
 def edge_hash(*edges: Edge, edge_key: str = "edge_hash", geo_key: str = "geohashing", expire: int = 1209600):
@@ -111,9 +114,13 @@ def _script_load(script):
         if not force_eval:
             # 加载并缓存校验和
             if not sha[0]:
-                sha[0] = conn.execute_command("SCRIPT", "LOAD", script, parse="LOAD")
+                script_lock.acquire()
                 if isinstance(conn, redis.client.Pipeline):
-                    sha[0] = conn.execute()[0]
+                    conn.execute_command("SCRIPT", "LOAD", script, parse="LOAD")
+                    sha[0] = conn.execute()[-1]
+                else:
+                    sha[0] = conn.execute_command("SCRIPT", "LOAD", script, parse="LOAD")
+                script_lock.release()
             try:
                 return conn.execute_command("EVALSHA", sha[0], len(keys), *(keys + args))
             except redis.exceptions.ResponseError as msg:

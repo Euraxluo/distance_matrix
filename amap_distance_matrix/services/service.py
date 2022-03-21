@@ -4,7 +4,7 @@
 # author: Euraxluo
 
 
-from functools import partial
+from functools import partial, lru_cache
 from amap_distance_matrix.services.dishashing import *
 from amap_distance_matrix.services.navigation import *
 from amap_distance_matrix.helper import *
@@ -39,13 +39,15 @@ def distance_matrix(*points: List[float],
     # 1.生成点对并排序
     edge_sorted = point_pairing_sorted(*points)
 
+    if time_slot is None:
+        time_slot = time_slot_wmh()[-2:]
+
     waypoints = []
     for i, edge_points in enumerate(edge_sorted):
         waypoints.append(edge_points[0])
         if i == len(edge_sorted) - 1:
             waypoints.append(edge_points[1])
-
-    route_edges = waypoints_route(*waypoints, time_slot=time_slot, autonavi_config=autonavi_config, edge_key=edge_key, geo_key=geo_key, expire=expire, geo_wide=geo_wide, strictly_constrained=strictly_constrained)
+    route_edges = waypoints_route(*waypoints, time_slot=time_slot, autonavi_config=json.dumps(autonavi_config), edge_key=edge_key, geo_key=geo_key, expire=expire, geo_wide=geo_wide, strictly_constrained=strictly_constrained)
     distances = {}
     durations = {}
     edges = {}
@@ -78,7 +80,7 @@ def distance_matrix(*points: List[float],
                     duration_tmp = durations[co_id][cd_id]
                     edge_tmp = edges[co_id][cd_id]
                 else:
-                    i_j_route = waypoints_route(i, j, time_slot=time_slot, autonavi_config=autonavi_config, edge_key=edge_key, geo_key=geo_key, expire=expire, geo_wide=geo_wide, strictly_constrained=strictly_constrained)
+                    i_j_route = waypoints_route(i, j, time_slot=time_slot, autonavi_config=json.dumps(autonavi_config), edge_key=edge_key, geo_key=geo_key, expire=expire, geo_wide=geo_wide, strictly_constrained=strictly_constrained)
                     distance_tmp = int(i_j_route[0]['distance'])
                     duration_tmp = int(i_j_route[0]['duration'])
                     edge_tmp = i_j_route[0]
@@ -128,9 +130,11 @@ def driving_route(waypoints: List[List[float]],
     return driving_batch_result
 
 
+# @ignore_unhashable
+# @lru_cache()
 def waypoints_route(*waypoints: Union[List[float], Tuple[float]],
                     time_slot: str = None,
-                    autonavi_config: Dict = None,
+                    autonavi_config: Union[Dict, str] = None,
                     edge_key: str = "edge_hash",
                     geo_key: str = "geohashing",
                     expire: int = 1209600,
@@ -154,6 +158,9 @@ def waypoints_route(*waypoints: Union[List[float], Tuple[float]],
     }
     """
     # 1. 先获取geohash
+    if isinstance(autonavi_config, str):
+        autonavi_config = json.loads(autonavi_config)
+
     if len(waypoints) < 2:
         return []
     edges = []
