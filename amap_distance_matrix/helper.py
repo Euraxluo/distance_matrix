@@ -13,7 +13,7 @@ from math import radians, cos, sin, asin, sqrt
 from typing import *
 
 
-def check_location(location: List[float]):
+def check_location(location: List[float]) -> bool:
     if not location and len(location) < 2:
         return False
     if 73 < location[0] < 136 and 3 < location[1] < 54:
@@ -21,7 +21,7 @@ def check_location(location: List[float]):
     return False
 
 
-def loc_to_str(loc_list: list, revers=False) -> str:
+def loc_to_str(loc_list: list, revers: bool = False) -> str:
     """
     坐标列表转字符串
     :param loc_list:[[float,float]]
@@ -50,12 +50,12 @@ def format_loc(loc_str: str, revers=False) -> list:
     return [float(i) for i in loc_str.split(',')[::]]
 
 
-def wgs2gcj(Lon, Lat):
+def wgs2gcj(Lon: float, Lat: float) -> Tuple[float]:
     from coord_convert.transform import wgs2gcj
     return wgs2gcj(wgsLon=Lon, wgsLat=Lat)
 
 
-def gcj2wgs(Lon, Lat):
+def gcj2wgs(Lon: float, Lat: float) -> Tuple[float]:
     from coord_convert.transform import gcj2wgs
     return gcj2wgs(gcjLon=Lon, gcjLat=Lat)
 
@@ -129,7 +129,7 @@ def ignore_unhashable(func):
 
 @ignore_unhashable
 @functools.lru_cache()
-def points_permutations_sorted(distinct_point_list: Tuple[Tuple[float]]) -> Tuple[Tuple[Tuple[float], ...]]:
+def points_permutations_sorted(distinct_point_list: Tuple[Tuple[float]]) -> Tuple[Tuple[Tuple[float]]]:
     # 2. 获取全排列数据
     adjacency_list: Dict[Tuple[float], Set[Tuple[float]]] = {}
     all_edges = set()

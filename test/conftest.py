@@ -41,5 +41,5 @@ rdb = RedisHelper().rdb()
 from amap_distance_matrix.services.register import register
 from loguru import logger
 
-register.setup(keys=["4396fb03833e27e6438dde36c7457cc3", "4396fb03833e27e6438dde36c7457cc3"], logger=logger, osrm_host="", conn=rdb,
+register.setup(keys=["8011e4f922fbfdc87874848d256baa09"], logger=logger, osrm_host="", conn=rdb,
                persistence_uri="mysql+pymysql://root:mysql@localhost:3306",database="distance_matrix")

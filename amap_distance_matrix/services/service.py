@@ -38,7 +38,6 @@ def distance_matrix(*points: List[float],
     """
     # 1.生成点对并排序
     edge_sorted = point_pairing_sorted(*points)
-
     if time_slot is None:
         time_slot = time_slot_wmh()[-2:]
 
@@ -169,7 +168,7 @@ def waypoints_route(*waypoints: Union[List[float], Tuple[float]],
 
     if time_slot is None:
         time_slot = time_slot_wmh()[-2:]
-    get_edges = edge_get(*edges, time_slot=time_slot, geo_wide=geo_wide, strictly_constrained=strictly_constrained)
+    get_edges = edge_get(*edges, dist=int(geo_wide / 2), time_slot=time_slot, edge_key=edge_key, geo_key=geo_key, geo_wide=geo_wide, strictly_constrained=strictly_constrained)
     result = [None] * len(get_edges)
     need_calculate_waypoints = []
     need_calculate_waypoints_result_idx: List[int] = []
@@ -182,6 +181,14 @@ def waypoints_route(*waypoints: Union[List[float], Tuple[float]],
             result[i] = edge
     if not need_calculate_waypoints:
         return result
+
+    # 重新进行路径排列和计算
+    # need_calculate_edges = point_pairing_sorted(*need_calculate_waypoints)
+    # need_calculate_waypoints = []
+    # for i, edge_points in enumerate(need_calculate_edges):
+    #     need_calculate_waypoints.append(edge_points[0])
+    #     if i == len(need_calculate_edges) - 1:
+    #         need_calculate_waypoints.append(edge_points[1])
     driving_result = driving_route(need_calculate_waypoints, autonavi_config=autonavi_config, edge_key=edge_key, geo_key=geo_key, expire=expire)
     register.logger.info(f"route_waypoints get driving and cache {len(driving_result['steps'])}")
     for i, edge in enumerate(driving_result['steps']):
