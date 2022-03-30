@@ -103,7 +103,7 @@ def futures_navigating(urls: list) -> dict:
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         event_loop = asyncio.get_event_loop()
-    executors = futures.ThreadPoolExecutor((len(urls) // 10 + 1))
+    executors = futures.ThreadPoolExecutor(5)
     # 添加task
     for idx in range(len(urls)):
         all_tasks.append(event_loop.run_in_executor(executors, request_navigating, urls[idx], idx, data_collections))
@@ -118,13 +118,15 @@ def futures_navigating(urls: list) -> dict:
             key_idx = -1
             for i, token in enumerate(all_token):
                 if token.startswith("key"):
-                    old_key = token.split('=')[-1]  # TODO:旧的key,可以降低权重等
+                    old_key = token.split('=')[-1]
+                    register.logger.error(f"futures_navigating request failed,key:{old_key},maybe need degradation")
                     key_idx = i
             if key_idx > 0:
                 all_token[key_idx] = f"key={random.choice(register.keys)}"
             urls[idx] = "&".join(all_token)
             request_navigating(urls[idx], idx, data_collections)
             if not data_collections[idx]:
+                register.logger.error(f"futures_navigating request failed,new url:{urls[idx]}")
                 api_data_result = default_data_with_navigating_url(urls[idx], idx, data_collections)
         if not pack_data_result:
             pack_data_result = api_data_result
