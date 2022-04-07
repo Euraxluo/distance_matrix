@@ -7,7 +7,7 @@ from typing import *
 from pydantic import PrivateAttr, validator
 from sqlalchemy import Column, String, Float, TIMESTAMP, text
 from sqlalchemy.dialects.mysql import LONGTEXT
-from sqlalchemy_pydantic_orm import ORMBaseSchema
+from .sqlalchemy_pydantic_orm import ORMBaseSchema
 from amap_distance_matrix.services.register import register
 import json
 

@@ -247,8 +247,8 @@ tr {
 }
 </style>
     <script type="text/javascript">
-var chartData_cn = [[21, '#1c965b', '通过'], [1, '#64b5f6', '跳过']];
-var chartData_en = [[21, '#1c965b', 'Passed'], [1, '#64b5f6', 'Skipped']];
+var chartData_cn = [[19, '#1c965b', '通过'], [2, '#ff9800', '错误'], [1, '#64b5f6', '跳过']];
+var chartData_en = [[19, '#1c965b', 'Passed'], [2, '#ff9800', 'Error'], [1, '#64b5f6', 'Skipped']];
 function addClass(e, c) {
     if (!isClass(e, c)) {
         if (e.className) {
@@ -665,19 +665,19 @@ goChart(chartData_en);
     <strong>
       <span class="lang-cn">启动时间：</span>
       <span class="lang-en">Start Time:</span>
-    </strong> 2022-03-08 11:22:06
+    </strong> 2022-04-07 18:55:30
   </p>
   <p class='attribute'>
     <strong>
       <span class="lang-cn">结束时间：</span>
       <span class="lang-en">End Time:</span>
-    </strong> 2022-03-08 11:28:01
+    </strong> 2022-04-07 18:57:51
   </p>
   <p class='attribute'>
     <strong>
       <span class="lang-cn">运行时长：</span>
       <span class="lang-en">Duration:</span>
-    </strong> 0:05:55.572011
+    </strong> 0:02:21.070103
   </p>
   <p class='attribute'>
     <strong>
@@ -687,11 +687,11 @@ goChart(chartData_en);
     <span class="lang-cn">合计：</span>
     <span class="lang-en">Total:</span>22&nbsp;&nbsp;&nbsp;&nbsp;
     <span class="lang-cn">通过：</span>
-    <span class="lang-en">Passed:</span>21&nbsp;&nbsp;&nbsp;&nbsp;
+    <span class="lang-en">Passed:</span>19&nbsp;&nbsp;&nbsp;&nbsp;
     <span class="lang-cn">失败：</span>
     <span class="lang-en">Failed:</span>0&nbsp;&nbsp;&nbsp;&nbsp;
     <span class="lang-cn">错误：</span>
-    <span class="lang-en">Error:</span>0&nbsp;&nbsp;&nbsp;&nbsp;
+    <span class="lang-en">Error:</span>2&nbsp;&nbsp;&nbsp;&nbsp;
     <span class="lang-cn">跳过：</span>
     <span class="lang-en">Skipped:</span>1&nbsp;&nbsp;&nbsp;&nbsp;
   </p>
@@ -1122,15 +1122,15 @@ goChart(chartData_en);
 </tr><tr class='passClass'>
     <td>c3</td>
     <td>test.test_helper.TestHelper</td>
-    <td>2</td>
-    <td class="passCase">2</td>
+    <td>3</td>
+    <td class="passCase">3</td>
     <td class="failCase">0</td>
     <td class="errorCase">0</td>
     <td class="skipCase">0</td>
     <td style="text-align:right;">100.00%</td>
     <td>0</td>
     <td>
-        <a href="javascript:showClassDetail('c3',2)">
+        <a href="javascript:showClassDetail('c3',3)">
             <span class="lang-cn">细节</span>
             <span class="lang-en">Detail</span>
         </a>
@@ -1167,7 +1167,7 @@ goChart(chartData_en);
 </tr><tr id='pt3.2'>
 <td>pt3.2</td>
     <td class='passCase' colspan='7'>
-        <div class='testcase'>test_time_slot</div>
+        <div class='testcase'>test_point_pairing_sorted_cache</div>
     </td>
     <td class='passCase'>
         <div class='testcase' style="margin-left: auto;">0</div>
@@ -1192,15 +1192,43 @@ goChart(chartData_en);
             <div><ul class='figure_ul'></ul></div>
         </div>
     </td>
-</tr><tr class='passClass'>
+</tr><tr id='pt3.3'>
+<td>pt3.3</td>
+    <td class='passCase' colspan='7'>
+        <div class='testcase'>test_time_slot</div>
+    </td>
+    <td class='passCase'>
+        <div class='testcase' style="margin-left: auto;">0</div>
+    </td>
+    <td class='passCase' align='center'>
+        <a class="popup_link" onfocus='this.blur();' href="javascript:showTestDetail('div_pt3.3.1',1, false)">
+            <span class="lang-cn">通过</span>
+            <span class="lang-en">pass</span>
+        </a>
+    </td>
+</tr>
+<tr id='div_S_pt3.3.1' name='div_pt3.3.1' class="hiddenRow">
+    <td colspan='10'>
+        <div class="popup_window">
+            <div style='text-align: right; color:red;cursor:pointer'
+                 onclick="document.getElementById('div_S_pt3.3.1').className = 'hiddenRow'">
+                <a onfocus='this.blur();'>[x]</a>
+            </div>
+            <pre>pt3.3.1:
+
+</pre>
+            <div><ul class='figure_ul'></ul></div>
+        </div>
+    </td>
+</tr><tr class='errorClass'>
     <td>c4</td>
     <td>test.test_map.TestAMap</td>
     <td>5</td>
-    <td class="passCase">5</td>
+    <td class="passCase">4</td>
     <td class="failCase">0</td>
-    <td class="errorCase">0</td>
+    <td class="errorCase">1</td>
     <td class="skipCase">0</td>
-    <td style="text-align:right;">100.00%</td>
+    <td style="text-align:right;">80.00%</td>
     <td>0</td>
     <td>
         <a href="javascript:showClassDetail('c4',5)">
@@ -1321,102 +1349,74 @@ goChart(chartData_en);
             <div><ul class='figure_ul'></ul></div>
         </div>
     </td>
-</tr><tr id='pt4.5'>
-<td>pt4.5</td>
-    <td class='passCase' colspan='7'>
+</tr><tr id='et4.5'>
+<td>et4.5</td>
+    <td class='errorCase' colspan='7'>
         <div class='testcase'>test_osrm</div>
     </td>
-    <td class='passCase'>
+    <td class='errorCase'>
         <div class='testcase' style="margin-left: auto;">0</div>
     </td>
-    <td class='passCase' align='center'>
-        <a class="popup_link" onfocus='this.blur();' href="javascript:showTestDetail('div_pt4.5.1',1, false)">
-            <span class="lang-cn">通过</span>
-            <span class="lang-en">pass</span>
+    <td class='errorCase' align='center'>
+        <a class="popup_link" onfocus='this.blur();' href="javascript:showTestDetail('div_et4.5.1',1, false)">
+            <span class="lang-cn">错误</span>
+            <span class="lang-en">error</span>
         </a>
     </td>
 </tr>
-<tr id='div_S_pt4.5.1' name='div_pt4.5.1' class="hiddenRow">
+<tr id='div_S_et4.5.1' name='div_et4.5.1' class="hiddenRow">
     <td colspan='10'>
         <div class="popup_window">
             <div style='text-align: right; color:red;cursor:pointer'
-                 onclick="document.getElementById('div_S_pt4.5.1').className = 'hiddenRow'">
+                 onclick="document.getElementById('div_S_et4.5.1').className = 'hiddenRow'">
                 <a onfocus='this.blur();'>[x]</a>
             </div>
-            <pre>pt4.5.1:
+            <pre>et4.5.1:
 
 </pre>
             <div><ul class='figure_ul'></ul></div>
         </div>
     </td>
-</tr><tr class='passClass'>
+</tr><tr class='errorClass'>
     <td>c5</td>
-    <td>test.test_persistence.TestHelper</td>
-    <td>2</td>
-    <td class="passCase">2</td>
+    <td>unittest.loader._FailedTest</td>
+    <td>1</td>
+    <td class="passCase">0</td>
     <td class="failCase">0</td>
-    <td class="errorCase">0</td>
+    <td class="errorCase">1</td>
     <td class="skipCase">0</td>
-    <td style="text-align:right;">100.00%</td>
+    <td style="text-align:right;">0.00%</td>
     <td>0</td>
     <td>
-        <a href="javascript:showClassDetail('c5',2)">
+        <a href="javascript:showClassDetail('c5',1)">
             <span class="lang-cn">细节</span>
             <span class="lang-en">Detail</span>
         </a>
     </td>
 </tr>
-<tr id='pt5.1'>
-<td>pt5.1</td>
-    <td class='passCase' colspan='7'>
-        <div class='testcase'>test_get_edge</div>
-    </td>
-    <td class='passCase'>
-        <div class='testcase' style="margin-left: auto;">0</div>
-    </td>
-    <td class='passCase' align='center'>
-        <a class="popup_link" onfocus='this.blur();' href="javascript:showTestDetail('div_pt5.1.1',1, false)">
-            <span class="lang-cn">通过</span>
-            <span class="lang-en">pass</span>
-        </a>
-    </td>
-</tr>
-<tr id='div_S_pt5.1.1' name='div_pt5.1.1' class="hiddenRow">
-    <td colspan='10'>
-        <div class="popup_window">
-            <div style='text-align: right; color:red;cursor:pointer'
-                 onclick="document.getElementById('div_S_pt5.1.1').className = 'hiddenRow'">
-                <a onfocus='this.blur();'>[x]</a>
-            </div>
-            <pre>pt5.1.1:
-
-</pre>
-            <div><ul class='figure_ul'></ul></div>
-        </div>
-    </td>
-</tr><tr id='pt5.2'>
-<td>pt5.2</td>
-    <td class='passCase' colspan='7'>
+<tr id='et5.1'>
+<td>et5.1</td>
+    <td class='errorCase' colspan='7'>
         <div class='testcase'>test_persistence</div>
     </td>
-    <td class='passCase'>
+    <td class='errorCase'>
         <div class='testcase' style="margin-left: auto;">0</div>
     </td>
-    <td class='passCase' align='center'>
-        <a class="popup_link" onfocus='this.blur();' href="javascript:showTestDetail('div_pt5.2.1',1, false)">
-            <span class="lang-cn">通过</span>
-            <span class="lang-en">pass</span>
+    <td class='errorCase' align='center'>
+        <a class="popup_link" onfocus='this.blur();' href="javascript:showTestDetail('div_et5.1.1',1, false)">
+            <span class="lang-cn">错误</span>
+            <span class="lang-en">error</span>
         </a>
     </td>
 </tr>
-<tr id='div_S_pt5.2.1' name='div_pt5.2.1' class="hiddenRow">
+<tr id='div_S_et5.1.1' name='div_et5.1.1' class="hiddenRow">
     <td colspan='10'>
         <div class="popup_window">
             <div style='text-align: right; color:red;cursor:pointer'
-                 onclick="document.getElementById('div_S_pt5.2.1').className = 'hiddenRow'">
+                 onclick="document.getElementById('div_S_et5.1.1').className = 'hiddenRow'">
                 <a onfocus='this.blur();'>[x]</a>
             </div>
-            <pre>pt5.2.1:
+            <pre>et5.1.1:
 
 </pre>
             <div><ul class='figure_ul'></ul></div>
@@ -1503,11 +1503,11 @@ goChart(chartData_en);
             <span class="lang-en">Total</span>
         </td>
         <td>22</td>
-        <td class="passCase">21</td>
+        <td class="passCase">19</td>
         <td class="failCase">0</td>
-        <td class="errorCase">0</td>
+        <td class="errorCase">2</td>
         <td class="skipCase">1</td>
-        <td style="text-align:right;">95.45%</td>
+        <td style="text-align:right;">86.36%</td>
         <td>0</td>
         <td>&nbsp;</td>
     </tr>
