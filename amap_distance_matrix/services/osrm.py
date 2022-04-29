@@ -5,6 +5,8 @@
 
 import copy
 import asyncio
+import warnings
+
 import polyline
 from concurrent import futures
 from amap_distance_matrix.helper import *
@@ -54,16 +56,17 @@ def futures_osrm(urls: list) -> dict:
     pack_data_result = {}
     all_tasks = []
     # 准备
-    try:
-        event_loop = asyncio.get_event_loop()
-    except RuntimeError as _:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        event_loop = asyncio.get_event_loop()
-    executors = futures.ThreadPoolExecutor((len(urls) // 10 + 1))
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=DeprecationWarning)
+        try:
+            event_loop = asyncio.get_event_loop()
+        except Exception as _:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            event_loop = asyncio.get_event_loop()
     # 添加task
     for idx in range(len(urls)):
-        all_tasks.append(event_loop.run_in_executor(executors, request_osrm, urls[idx], idx, data_collections))
+        all_tasks.append(event_loop.run_in_executor(register.pool, request_osrm, urls[idx], idx, data_collections))
     # 运行
     event_loop.run_until_complete(asyncio.wait(all_tasks))
 

@@ -13,8 +13,8 @@ from amap_distance_matrix.helper import *
 def distance_matrix(*points: List[float],
                     time_slot: str = None,
                     autonavi_config: Dict = None,
-                    edge_key: str = "edge_hash",
-                    geo_key: str = "geohashing",
+                    edge_key: str = "",
+                    geo_key: str = "",
                     expire: int = 1209600,
                     geo_wide: int = 200,
                     strictly_constrained: bool = False) -> Tuple[Dict[int, dict], Dict[int, dict], Dict[int, Dict]]:
@@ -36,6 +36,10 @@ def distance_matrix(*points: List[float],
     }
     :return 返回 距离矩阵,时间矩阵,边矩阵
     """
+    if not edge_key:
+        edge_key = register.edge_key
+    if not geo_key:
+        geo_key = register.geo_key
     # 1.生成点对并排序
     edge_sorted = point_pairing_sorted(*points)
     if time_slot is None:
@@ -97,8 +101,8 @@ def distance_matrix(*points: List[float],
 
 def driving_route(waypoints: List[List[float]],
                   autonavi_config: Dict = None,
-                  edge_key: str = "edge_hash",
-                  geo_key: str = "geohashing",
+                  edge_key: str = "",
+                  geo_key: str = "",
                   expire: int = 1209600):
     """
     通过获取高德Webapi得到导航结果,并且进行缓存
@@ -115,6 +119,10 @@ def driving_route(waypoints: List[List[float]],
     }
     :return:
     """
+    if not edge_key:
+        edge_key = register.edge_key
+    if not geo_key:
+        geo_key = register.geo_key
     if len(waypoints) < 2:
         raise ValueError("waypoints length must greater than 2")
     driving_batch_result = driving_batch(origin=waypoints[0], waypoints=waypoints[1:-1], destination=waypoints[-1], autonavi_config=autonavi_config)
@@ -134,8 +142,8 @@ def driving_route(waypoints: List[List[float]],
 def waypoints_route(*waypoints: Union[List[float], Tuple[float]],
                     time_slot: str = None,
                     autonavi_config: Union[Dict, str] = None,
-                    edge_key: str = "edge_hash",
-                    geo_key: str = "geohashing",
+                    edge_key: str = "",
+                    geo_key: str = "",
                     expire: int = 1209600,
                     geo_wide: int = 200,
                     strictly_constrained: bool = False) -> Union[list, List[None]]:
@@ -156,6 +164,10 @@ def waypoints_route(*waypoints: Union[List[float], Tuple[float]],
          host: str host_name "https://restapi.amap.com/v3/direction/driving"
     }
     """
+    if not edge_key:
+        edge_key = register.edge_key
+    if not geo_key:
+        geo_key = register.geo_key
     # 1. 先获取geohash
     if isinstance(autonavi_config, str):
         autonavi_config = json.loads(autonavi_config)
@@ -174,6 +186,8 @@ def waypoints_route(*waypoints: Union[List[float], Tuple[float]],
     need_calculate_waypoints_result_idx: List[int] = []
     for i, ((start, end), (start_geohash, end_geohash, edge)) in enumerate(zip(edges, get_edges)):
         if start_geohash != end_geohash and edge['distance'] == 0:
+            if need_calculate_waypoints and need_calculate_waypoints[-1] == start:
+                start = (start[0],start[1]+0.01)
             need_calculate_waypoints.append(start)
             need_calculate_waypoints.append(end)
             need_calculate_waypoints_result_idx.append(i)

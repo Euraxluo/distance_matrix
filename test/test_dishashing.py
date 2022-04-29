@@ -84,9 +84,9 @@ class Test(TestCase):
         res = edge_hash(edge3)
         print(res)
 
-    @skip
+    # @skip
     def test_all(self):
-        for i in range(10000, 20000):
+        for i in range(1, 2):
             edge1 = Edge(**{
                 "w_m_t": str(int(time_slot_wmh()) + i),
                 "distance": 23201,

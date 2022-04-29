@@ -7,6 +7,7 @@
 import random
 import asyncio
 import aiohttp
+import warnings
 from concurrent import futures
 from amap_distance_matrix.helper import *
 from amap_distance_matrix.services.register import register
@@ -84,14 +85,14 @@ def futures_geo(address_city_list: List[Tuple[str, str]]) -> list:
     :param address_city_list:
     :return:
     """
-    try:
-        event_loop = asyncio.get_event_loop()
-    except RuntimeError as _:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        event_loop = asyncio.get_event_loop()
-
-    executors = futures.ThreadPoolExecutor(max_workers=(len(address_city_list) // 10 + 1))
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=DeprecationWarning)
+        try:
+            event_loop = asyncio.get_event_loop()
+        except Exception as _:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            event_loop = asyncio.get_event_loop()
 
     location_list = []
 
@@ -100,12 +101,11 @@ def futures_geo(address_city_list: List[Tuple[str, str]]) -> list:
 
     for idx, (addr, city) in enumerate(address_city_list):
         url = geo_url(addr, city)
-        task = event_loop.run_in_executor(executors, request_geo, url)
+        task = event_loop.run_in_executor(register.pool, request_geo, url)
         tasks.append(task)
         tasks_address.append((addr, city))
 
     event_loop.run_until_complete(asyncio.wait(tasks))
-
     for idx, task in enumerate(tasks):
         location = task.result()
         location_list.append(location)

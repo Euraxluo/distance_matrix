@@ -15,7 +15,7 @@ from amap_distance_matrix.helper import *
 script_lock = threading.Lock()
 
 
-def edge_hash(*edges: Edge, edge_key: str = "edge_hash", geo_key: str = "geohashing", expire: int = 1209600):
+def edge_hash(*edges: Edge, edge_key: str = "", geo_key: str = "", expire: int = 1209600):
     """
     针对边的详细信息进行存储
     :param expire: 边缓存过期时间,默认两周
@@ -24,22 +24,35 @@ def edge_hash(*edges: Edge, edge_key: str = "edge_hash", geo_key: str = "geohash
     :param edges:
     :return:
     """
+    if not edge_key:
+        edge_key = register.edge_key
+    if not geo_key:
+        geo_key = register.geo_key
+
     with register.redis.pipeline(transaction=False) as pip:
         for edge in edges:
             b_geohash = geo_encode(*edge.origin)
             e_geohash = geo_encode(*edge.destination)
-            pip.geoadd(geo_key, [edge.origin[0], edge.origin[1], b_geohash, edge.destination[0], edge.destination[1], e_geohash])
+            pip.execute_command('GEOADD', geo_key,
+                                *[edge.origin[0], edge.origin[1], b_geohash, edge.destination[0], edge.destination[1],
+                                  e_geohash])
             pip.hset(name=edge_key + ':' + b_geohash + ':' + e_geohash, key=edge.w_m_t, value=edge.json())
             pip.expire(edge_key + ':' + b_geohash + ':' + e_geohash, expire)  # 两周的过期时间
 
             # 更新key列表
             pip.zremrangebyscore(register.geohashing_keys, 0, time.time() - expire)
-            pip.zadd(register.geohashing_keys, {edge_key + ':' + b_geohash + ':' + e_geohash: time.time()})
+            add_item = {edge_key + ':' + b_geohash + ':' + e_geohash: time.time()}
+            pieces = []
+            for pair in add_item.items():
+                pieces.append(pair[1])
+                pieces.append(pair[0])
+            pip.execute_command('ZADD', register.geohashing_keys, *pieces)
         res = pip.execute()
         log_result = [res[i:i + 5] for i in range(0, len(res), 5)]
         log_result = [sum([i[idx] for i in log_result]) for idx in range(5)]
 
-        register.logger.info(f"edge_hash: hashing_edges:{len(edges)},geo_add:{log_result[0]},edge_hash:{log_result[1]},zset_remove:{log_result[3]},zset_add:{log_result[4]}")
+        register.logger.info(
+            f"edge_hash: hashing_edges:{len(edges)},geo_add:{log_result[0]},edge_hash:{log_result[1]},zset_remove:{log_result[3]},zset_add:{log_result[4]}")
 
 
 def edge_list() -> Generator:
@@ -55,15 +68,13 @@ def edge_list() -> Generator:
         if isinstance(hkey, bytes):
             hkey = str(hkey, encoding='utf8')
         geohashing_keys.append(hkey)
-        res = hashset_scan(hkey, conn=register.redis)
+        res = hashset_scan(hkey)
         for k, v in res.items():
             yield hkey, k, v
 
 
-def hashset_scan(hkey: str, page_size: int = None, conn=None):
-    if isinstance(conn, redis.Redis):
-        conn = conn.pipeline(transaction=False)
-    with conn as pipe:
+def hashset_scan(hkey: str, page_size: int = None):
+    with register.redis.pipeline(transaction=False) as pipe:
         page_number = -1
         scans = {}
         while page_number != 0:
@@ -141,8 +152,8 @@ _acquire_edge = _script_load(
     local radius_keys_dist = {}
     local near_endpoint = {}
     local scans = nil
-    local bs = redis.call('georadius',KEYS[4],ARGV[3],ARGV[4],ARGV[7],ARGV[8],'COUNT',3,'WITHDIST')
-    local es =  redis.call('georadius',KEYS[4],ARGV[5],ARGV[6],ARGV[7],ARGV[8],'COUNT',3,'WITHDIST')
+    local bs = redis.call('georadius',KEYS[2],ARGV[3],ARGV[4],ARGV[7],ARGV[8],'COUNT',3,'WITHDIST')
+    local es =  redis.call('georadius',KEYS[2],ARGV[5],ARGV[6],ARGV[7],ARGV[8],'COUNT',3,'WITHDIST')
 
     for _,b in ipairs(bs) do
         for _,e in ipairs(es) do
@@ -174,7 +185,9 @@ _acquire_edge = _script_load(
 )
 
 
-def edge_get(*edges: Tuple[List[float]], dist: int = 200, unit: str = 'm', time_slot: str = None, edge_key: str = "edge_hash", geo_key: str = "geohashing", geo_wide: int = 200, strictly_constrained: bool = False):
+def edge_get(*edges: Tuple[List[float]], dist: int = 200, unit: str = 'm', time_slot: str = None,
+             edge_key: str = "", geo_key: str = "", geo_wide: int = 200,
+             strictly_constrained: bool = False):
     """
     根据 起点和终点经纬度获取边信息
     :param strictly_constrained: 强约束,0/False为非强约束,1/True 为强约束
@@ -187,6 +200,10 @@ def edge_get(*edges: Tuple[List[float]], dist: int = 200, unit: str = 'm', time_
     :param geo_key:geo点存储key,主要用于分区
     :return:
     """
+    if not edge_key:
+        edge_key = register.edge_key
+    if not geo_key:
+        geo_key = register.geo_key
     result = []
     if strictly_constrained:
         strictly_constrained = 1
@@ -198,19 +215,25 @@ def edge_get(*edges: Tuple[List[float]], dist: int = 200, unit: str = 'm', time_
         for edge in edges:
             b_geohash = geo_encode(*edge[0])
             e_geohash = geo_encode(*edge[1])
-            _acquire_edge(pip, [edge_key, b_geohash, e_geohash, geo_key], [f"???{time_slot}", 7, edge[0][0], edge[0][1], edge[1][0], edge[1][1], dist, unit, geo_wide, strictly_constrained])
+            _acquire_edge(pip, [edge_key, geo_key],
+                          [f"???{time_slot}", 7, edge[0][0], edge[0][1], edge[1][0], edge[1][1], dist, unit, geo_wide,
+                           strictly_constrained], force_eval=True)
+            # _acquire_edge(pip, [edge_key, b_geohash, e_geohash, geo_key], [f"???{time_slot}", 7, edge[0][0], edge[0][1], edge[1][0], edge[1][1], dist, unit, geo_wide, strictly_constrained])
         edges_list = pip.execute()
         for el, edge in zip(edges_list, edges):
             if len(el) == 0:
-                el.append([b_geohash, e_geohash, Edge(w_m_t=time_slot_wmh(), origin=edge[0], destination=edge[1]).dict()])
+                el.append(
+                    [b_geohash, e_geohash, Edge(w_m_t=time_slot_wmh(), origin=edge[0], destination=edge[1]).dict()])
             elif len(el) >= 1 and isinstance(el[0][2], int):
                 el.sort(key=lambda x: x[2])
                 el[0][2] = Edge(w_m_t=time_slot_wmh(), origin=edge[0], destination=edge[1]).dict()
             elif isinstance(el[0][2], str):
-                el.sort(key=lambda x: abs(int(json.loads(x[2])['w_m_t'][-2:]) - int(time_slot)) if time_slot.isdigit() else 0)
+                el.sort(key=lambda x: abs(
+                    int(json.loads(x[2])['w_m_t'][-2:]) - int(time_slot)) if time_slot.isdigit() else 0)
                 el[0][2] = json.loads(el[0][2])
             elif isinstance(el[0][2], bytes):
-                el.sort(key=lambda x: abs(int(json.loads(str(x[2], encoding='utf8'))['w_m_t'][-2:]) - int(time_slot)) if time_slot.isdigit() else 0)
+                el.sort(key=lambda x: abs(int(json.loads(str(x[2], encoding='utf8'))['w_m_t'][-2:]) - int(
+                    time_slot)) if time_slot.isdigit() else 0)
                 el[0][2] = json.loads(str(el[0][2], encoding='utf8'))
 
             for idx, ei in enumerate(el[0]):

@@ -21,7 +21,8 @@ def edge_persistence():
     with register.orm() as db:
         data = []
         for k, f, v in edge_list():
-            _, start, end = k.split(':')
+            item = k.split(':')
+            _, start, end = item[0:-3], item[-2], item[-1]
             data_item = EdgeUpsert(start=start, end=end, **json.loads(v))
             if data_item.distance == 0:
                 continue

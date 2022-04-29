@@ -8,19 +8,21 @@ from amap_distance_matrix.helper import *
 from amap_distance_matrix.services.register import register
 
 
-def geo_add(*points: List[float], key: str = "geohashing"):
+def geo_add(*points: List[float], key: str = ""):
     """
     添加 经纬度并转为geohash
     :param key:
     :param points:
     :return:
     """
+    if not key:
+        key = register.geo_key
     values = []
     [values.extend([point[0], point[1], geo_encode(*point)]) for point in points]
-    register.redis.geoadd(key, values)
+    register.redis.execute_command('GEOADD', key, *values)
 
 
-def geo_radius(point: List[float], dist: int = 200, unit: str = 'm', key: str = "geohashing"):
+def geo_radius(point: List[float], dist: int = 200, unit: str = 'm', key: str = ""):
     """
     根据经纬度,返回 缓存的 数据
     :param key: 存储key
@@ -29,6 +31,8 @@ def geo_radius(point: List[float], dist: int = 200, unit: str = 'm', key: str = 
     :param unit: 单位
     :return:
     """
+    if not key:
+        key = register.geo_key
     radius = register.redis.georadius(key, point[0], point[1], dist, unit, withdist=True, withcoord=True, sort='ASC')
     result_list = []
     for resp in radius:

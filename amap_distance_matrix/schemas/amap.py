@@ -4,7 +4,7 @@
 # author: Euraxluo
 
 from typing import *
-
+from amap_distance_matrix.helper import haversine,format_loc
 
 class AMapDefaultResultRouteStep(object):
     def __init__(self, start: str, end: str):
@@ -12,11 +12,11 @@ class AMapDefaultResultRouteStep(object):
         self.instruction = "到达途经地"
         self.orientation = "北"
         self.road = "road"
-        self.distance = "0"
+        self.distance = haversine(format_loc(start),format_loc(end))*1.5
         self.tolls = "0"
         self.toll_distance = "0"
         self.toll_road = []
-        self.duration = "0"
+        self.duration = self.distance/(25000/60/60)
         self.action = []
         self.assistant_action = "到达途经地"
         self.tmcs: List

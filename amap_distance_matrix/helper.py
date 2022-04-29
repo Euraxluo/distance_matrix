@@ -127,8 +127,8 @@ def ignore_unhashable(func):
     return wrapper
 
 
-@ignore_unhashable
-@functools.lru_cache()
+# @ignore_unhashable
+# @functools.lru_cache()
 def points_permutations_sorted(distinct_point_list: Tuple[Tuple[float]]) -> Tuple[Tuple[Tuple[float]]]:
     # 2. 获取全排列数据
     adjacency_list: Dict[Tuple[float], Set[Tuple[float]]] = {}

@@ -6,6 +6,7 @@
 
 import random
 import asyncio
+import warnings
 from concurrent import futures
 from amap_distance_matrix.helper import *
 from amap_distance_matrix.schemas.amap import *
@@ -69,7 +70,7 @@ def request_navigating(url, idx, data_list):
         else:
             raise Exception(data['infocode'])
     except Exception as e:
-        register.logger.warning(f"Autonavi Error:{e},url:{url}")
+        register.logger.warning(f"Autonavi Error:{e},url:{url},url_idx:{idx}")
 
 
 def default_data_with_navigating_url(url, idx, data_list):
@@ -97,37 +98,43 @@ def futures_navigating(urls: list) -> dict:
     pack_data_result = {}
     all_tasks = []
     # 准备
-    try:
-        event_loop = asyncio.get_event_loop()
-    except RuntimeError as _:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        event_loop = asyncio.get_event_loop()
-    executors = futures.ThreadPoolExecutor(5)
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=DeprecationWarning)
+        try:
+            event_loop = asyncio.get_event_loop()
+        except Exception as _:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            event_loop = asyncio.get_event_loop()
     # 添加task
     for idx in range(len(urls)):
-        all_tasks.append(event_loop.run_in_executor(executors, request_navigating, urls[idx], idx, data_collections))
+        all_tasks.append(event_loop.run_in_executor(register.pool, request_navigating, urls[idx], idx, data_collections))
     # 运行
     event_loop.run_until_complete(asyncio.wait(all_tasks))
     # 获取结果,只获取 ['route']['paths'][0] ,也即只获取第一种策略的数据
     for idx in range(len(urls)):
-        api_data_result = data_collections[idx]
-        if not api_data_result:
+        if not data_collections[idx]:
             # 再尝试换一个key获取一下
             all_token = urls[idx].split('&')
             key_idx = -1
             for i, token in enumerate(all_token):
                 if token.startswith("key"):
                     old_key = token.split('=')[-1]
-                    register.logger.error(f"futures_navigating request failed,key:{old_key},maybe need degradation")
+                    register.logger.error(f"futures_navigating request failed,key:{old_key},url_idx:{idx},maybe need degradation")
                     key_idx = i
             if key_idx > 0:
                 all_token[key_idx] = f"key={random.choice(register.keys)}"
             urls[idx] = "&".join(all_token)
+
+            # 使用新url 请求 数据
             request_navigating(urls[idx], idx, data_collections)
+
+            # 如果新url请求失败
             if not data_collections[idx]:
-                register.logger.error(f"futures_navigating request failed,new url:{urls[idx]}")
-                api_data_result = default_data_with_navigating_url(urls[idx], idx, data_collections)
+                register.logger.error(f"futures_navigating request failed,new url:{urls[idx]},url_idx:{idx}")
+                data_collections[idx] = default_data_with_navigating_url(urls[idx], idx, data_collections)
+        api_data_result = data_collections[idx]
+
         if not pack_data_result:
             pack_data_result = api_data_result
             pack_data_result['route']['paths'] = [pack_data_result['route']['paths'][0]]
