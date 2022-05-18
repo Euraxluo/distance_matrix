@@ -245,8 +245,8 @@ def driving_batch(origin: list, destination: list, waypoints: list = None, check
                 "duration": float(step['duration']),
                 "polyline": step['polyline'],
                 "tmc": road_status,
-                "origin": waypoints_step[len(waypoints_planning['steps']) - 1][0],
-                "destination": waypoints_step[len(waypoints_planning['steps']) - 1][1],
+                "origin": waypoints_step[len(waypoints_planning['steps'])][0],
+                "destination": waypoints_step[len(waypoints_planning['steps'])][1],
             }
             waypoints_planning['steps'].append(step_tmcs)
             # print(waypoints_step[len(waypoints_planning['steps']) - 1][0], "=>", waypoints_step[len(waypoints_planning['steps']) - 1][1], step['polyline'], )
