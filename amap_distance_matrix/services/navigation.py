@@ -81,8 +81,9 @@ async def async_request_navigating(urls: List[str], data_list, idx=None):
             tasks.append(task)
         else:
             for idx, url in enumerate(urls):
-                task = asyncio.ensure_future(do_async_request_navigating(session, urls, idx, data_list))
-                tasks.append(task)
+                if data_list[idx] is None:
+                    task = asyncio.ensure_future(do_async_request_navigating(session, urls, idx, data_list))
+                    tasks.append(task)
         await asyncio.gather(*tasks, return_exceptions=True)
 
 
@@ -164,20 +165,13 @@ def futures_navigating(urls: list) -> dict:
 
     # 异步io
     event_loop.run_until_complete(async_request_navigating(urls, data_collections))
+    event_loop.run_until_complete(async_request_navigating(urls, data_collections))
     # 获取结果,只获取 ['route']['paths'][0] ,也即只获取第一种策略的数据
     for idx in range(len(urls)):
+        # 如果新url请求失败
         if not data_collections[idx]:
-            # 再尝试换一个key获取一下
-            urls[idx] = exchange_key(urls[idx])
-            # 异步io
-            event_loop.run_until_complete(async_request_navigating(urls, data_collections, idx=idx))
-            # 线程
-            # request_navigating(urls[idx], idx, data_collections)
-
-            # 如果新url请求失败
-            if not data_collections[idx]:
-                register.logger.error(f"futures_navigating request failed,new url:{urls[idx]},url_idx:{idx}")
-                data_collections[idx] = default_data_with_navigating_url(urls[idx], idx, data_collections)
+            register.logger.error(f"futures_navigating request failed,new url:{urls[idx]},url_idx:{idx}")
+            data_collections[idx] = default_data_with_navigating_url(urls[idx], idx, data_collections)
         api_data_result = data_collections[idx]
 
         if not pack_data_result:
