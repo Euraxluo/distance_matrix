@@ -133,7 +133,7 @@ def driving_route(waypoints: List[List[float]],
         all_edge.append(Edge(**step))
 
     func = partial(edge_hash, edge_key=edge_key, geo_key=geo_key, expire=expire)
-    register.pool.submit(func, *all_edge)
+    register.pool.submit(func, *[Edge(**i) for i in driving_batch_result['steps']])
     return driving_batch_result
 
 
@@ -186,27 +186,22 @@ def waypoints_route(*waypoints: Union[List[float], Tuple[float]],
     need_calculate_waypoints_result_idx: List[int] = []
     for i, ((start, end), (start_geohash, end_geohash, edge)) in enumerate(zip(edges, get_edges)):
         if start_geohash != end_geohash and edge['distance'] == 0:
-            if need_calculate_waypoints and need_calculate_waypoints[-1] == start:
-                start = (start[0],start[1]+0.01)
-            need_calculate_waypoints.append(start)
-            need_calculate_waypoints.append(end)
-            need_calculate_waypoints_result_idx.append(i)
+            if need_calculate_waypoints and need_calculate_waypoints[-1] != start:
+                need_calculate_waypoints.append(end)
+                need_calculate_waypoints_result_idx.append(i)
+            else:
+                if need_calculate_waypoints:
+                    need_calculate_waypoints_result_idx.append(None)
+                need_calculate_waypoints_result_idx.append(i)
+                need_calculate_waypoints.append(start)
+                need_calculate_waypoints.append(end)
         else:
             result[i] = edge
     if not need_calculate_waypoints:
         return result
-
-    # 重新进行路径排列和计算
-    # need_calculate_edges = point_pairing_sorted(*need_calculate_waypoints)
-    # need_calculate_waypoints = []
-    # for i, edge_points in enumerate(need_calculate_edges):
-    #     need_calculate_waypoints.append(edge_points[0])
-    #     if i == len(need_calculate_edges) - 1:
-    #         need_calculate_waypoints.append(edge_points[1])
     driving_result = driving_route(need_calculate_waypoints, autonavi_config=autonavi_config, edge_key=edge_key, geo_key=geo_key, expire=expire)
     register.logger.info(f"route_waypoints get driving and cache {len(driving_result['steps'])}")
     for i, edge in enumerate(driving_result['steps']):
-        if i % 2 == 0:
-            result_idx: int = need_calculate_waypoints_result_idx[i // 2]
-            result[result_idx] = Edge(**edge).dict()
+        if need_calculate_waypoints_result_idx[i] is not None:
+            result[need_calculate_waypoints_result_idx[i]] = Edge(**edge).dict()
     return result

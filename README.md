@@ -1,6 +1,6 @@
 ### distance_matrix 
 - name = "amap_distance_matrix"
-- version = "0.3.12"
+- version = "0.4.0"
 - description = "amap distance matrix service based on Redis/Cluster Redis and MySQL"
 - authors = ["Euraxluo <euraxluo@outlook.com>"]
 - license = "The MIT LICENSE"
@@ -12,3 +12,6 @@
 `pip install amap-distance-matrix`
 
 ![](https://gitee.com/Euraxluo/images/raw/master/pycharm/MIK-RHfzjB.png)
+
+# Note
+this project is only a pilot project

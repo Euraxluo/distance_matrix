@@ -3,6 +3,7 @@
 # Copyright (c) 2022
 # author: Euraxluo
 
+from collections import deque
 import redis
 import requests
 from typing import *
@@ -17,7 +18,7 @@ class Register:
     """
     注册服务
     """
-    _amap_web_api_keys = []  # 高德地图WebApiKey列表
+    _amap_web_api_keys: deque = None  # 高德地图WebApiKey列表
     _session = None
     _pool_size = None
     _pool: ThreadPoolExecutor = None
@@ -58,7 +59,7 @@ class Register:
         :param edge_key: edge storage in redis hashset
         :return:
         """
-        cls._amap_web_api_keys = keys
+        cls._amap_web_api_keys = deque(keys)
         cls._logger = logger
         cls._osrm_host = osrm_host
         cls._geohashing_keys = geohashing_keys
@@ -99,6 +100,14 @@ class Register:
 
     @property
     def keys(self) -> list:
+        res = list(Register._amap_web_api_keys)
+        if len(res) > 1:
+            return res[0:-1]
+        else:
+            return res
+
+    @property
+    def keys_deque(self) -> deque:
         return Register._amap_web_api_keys
 
     @property

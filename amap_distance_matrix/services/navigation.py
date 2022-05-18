@@ -3,7 +3,7 @@
 # Copyright (c) 2022
 # author: Euraxluo
 
-
+import aiohttp
 import random
 import asyncio
 import warnings
@@ -64,13 +64,64 @@ def request_navigating(url, idx, data_list):
     :return:
     """
     try:
-        data = register.session().get(url).json()
+        data = register.session().get(url, timeout=2).json()
         if data['infocode'] == '10000':
             data_list[idx] = data
         else:
             raise Exception(data['infocode'])
     except Exception as e:
         register.logger.warning(f"Autonavi Error:{e},url:{url},url_idx:{idx}")
+
+
+async def async_request_navigating(urls: List[str], data_list, idx=None):
+    async with aiohttp.ClientSession() as session:
+        tasks = []
+        if idx:
+            task = asyncio.ensure_future(do_async_request_navigating(session, urls, idx, data_list))
+            tasks.append(task)
+        else:
+            for idx, url in enumerate(urls):
+                task = asyncio.ensure_future(do_async_request_navigating(session, urls, idx, data_list))
+                tasks.append(task)
+        await asyncio.gather(*tasks, return_exceptions=True)
+
+
+def exchange_key(amap_url):
+    # 再尝试换一个key获取一下
+    all_token = amap_url.split('&')
+    key_idx = -1
+    for i, token in enumerate(all_token):
+        if token.startswith("key"):
+            old_key = token.split('=')[-1]
+            try:
+                register.keys_deque.remove(old_key)
+            except ValueError:
+                ...
+            finally:
+                register.keys_deque.append(old_key)
+            register.logger.error(f"futures_navigating request failed,key:{old_key},maybe need degradation")
+            key_idx = i
+    if key_idx > 0:
+        all_token[key_idx] = f"key={random.choice(register.keys)}"
+    return "&".join(all_token)
+
+
+async def do_async_request_navigating(session: aiohttp.ClientSession, urls, idx, data_list):
+    async with session.get(urls[idx], timeout=aiohttp.ClientTimeout(total=2)) as response:
+        try:
+            data = await response.json()
+            if data['infocode'] == '10000':
+                data_list[idx] = data
+            else:
+                # 再尝试换一个key获取一下
+                urls[idx] = exchange_key(urls[idx])
+                async with session.get(urls[idx], timeout=aiohttp.ClientTimeout(total=2)) as re_resp:
+                    data = await re_resp.json()
+                    if data['infocode'] == '10000':
+                        data_list[idx] = data
+                raise Exception(data['infocode'])
+        except Exception as e:
+            register.logger.warning(f"Autonavi Error:{e},url:{urls[idx]},url_idx:{idx}")
 
 
 def default_data_with_navigating_url(url, idx, data_list):
@@ -106,28 +157,22 @@ def futures_navigating(urls: list) -> dict:
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
             event_loop = asyncio.get_event_loop()
-    # 添加task
-    for idx in range(len(urls)):
-        all_tasks.append(event_loop.run_in_executor(register.pool, request_navigating, urls[idx], idx, data_collections))
-    # 运行
-    event_loop.run_until_complete(asyncio.wait(all_tasks))
+    # 线程池
+    # for idx in range(len(urls)):
+    #     all_tasks.append(event_loop.run_in_executor(register.pool, request_navigating, urls[idx], idx, data_collections))
+    # event_loop.run_until_complete(asyncio.wait(all_tasks))
+
+    # 异步io
+    event_loop.run_until_complete(async_request_navigating(urls, data_collections))
     # 获取结果,只获取 ['route']['paths'][0] ,也即只获取第一种策略的数据
     for idx in range(len(urls)):
         if not data_collections[idx]:
             # 再尝试换一个key获取一下
-            all_token = urls[idx].split('&')
-            key_idx = -1
-            for i, token in enumerate(all_token):
-                if token.startswith("key"):
-                    old_key = token.split('=')[-1]
-                    register.logger.error(f"futures_navigating request failed,key:{old_key},url_idx:{idx},maybe need degradation")
-                    key_idx = i
-            if key_idx > 0:
-                all_token[key_idx] = f"key={random.choice(register.keys)}"
-            urls[idx] = "&".join(all_token)
-
-            # 使用新url 请求 数据
-            request_navigating(urls[idx], idx, data_collections)
+            urls[idx] = exchange_key(urls[idx])
+            # 异步io
+            event_loop.run_until_complete(async_request_navigating(urls, data_collections, idx=idx))
+            # 线程
+            # request_navigating(urls[idx], idx, data_collections)
 
             # 如果新url请求失败
             if not data_collections[idx]:

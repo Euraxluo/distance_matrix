@@ -162,6 +162,13 @@ _acquire_edge = _script_load(
             near_endpoint[#near_endpoint+1] = {b[1],e[1],b[2]+e[2]}
         end
     end
+    for _,e in ipairs(es) do
+        for _,b in ipairs(bs) do
+            radius_keys[#radius_keys+1] = {e[1],b[1]}
+            radius_keys_dist[#radius_keys_dist+1] = e[2]+b[2]
+            near_endpoint[#near_endpoint+1] = {e[1],b[1],e[2]+b[2]}
+        end
+    end
     for i,ks in ipairs(radius_keys) do
         local key = KEYS[1] .. ':' .. ks[1] .. ':' .. ks[2]
         if radius_keys_dist[i] < ARGV[9]+0 and ARGV[10] == '0' then
@@ -221,15 +228,15 @@ def edge_get(*edges: Tuple[List[float]], dist: int = 200, unit: str = 'm', time_
             # _acquire_edge(pip, [edge_key, b_geohash, e_geohash, geo_key], [f"???{time_slot}", 7, edge[0][0], edge[0][1], edge[1][0], edge[1][1], dist, unit, geo_wide, strictly_constrained])
         edges_list = pip.execute()
         for el, edge in zip(edges_list, edges):
+            b_geohash = geo_encode(*edge[0])
+            e_geohash = geo_encode(*edge[1])
             if len(el) == 0:
-                el.append(
-                    [b_geohash, e_geohash, Edge(w_m_t=time_slot_wmh(), origin=edge[0], destination=edge[1]).dict()])
+                el.append([b_geohash, e_geohash, Edge(w_m_t=time_slot_wmh(), origin=edge[0], destination=edge[1]).dict()])
             elif len(el) >= 1 and isinstance(el[0][2], int):
                 el.sort(key=lambda x: x[2])
                 el[0][2] = Edge(w_m_t=time_slot_wmh(), origin=edge[0], destination=edge[1]).dict()
             elif isinstance(el[0][2], str):
-                el.sort(key=lambda x: abs(
-                    int(json.loads(x[2])['w_m_t'][-2:]) - int(time_slot)) if time_slot.isdigit() else 0)
+                el.sort(key=lambda x: abs(int(json.loads(x[2])['w_m_t'][-2:]) - int(time_slot)) if time_slot.isdigit() else 0)
                 el[0][2] = json.loads(el[0][2])
             elif isinstance(el[0][2], bytes):
                 el.sort(key=lambda x: abs(int(json.loads(str(x[2], encoding='utf8'))['w_m_t'][-2:]) - int(
