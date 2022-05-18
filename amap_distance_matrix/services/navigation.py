@@ -3,6 +3,7 @@
 # Copyright (c) 2022
 # author: Euraxluo
 
+import traceback
 import aiohttp
 import random
 import asyncio
@@ -21,7 +22,7 @@ from amap_distance_matrix.services.register import register
 
 def navigating_url(origin: list, destination: list, waypoints: list = None,
                    batch_size: int = 12, strategy: int = 1, output: str = "json",
-                   key: str = None, host: str = "https://restapi.amap.com/v3/direction/driving") -> list:
+                   keys: Union[str, list] = None, host: str = "https://restapi.amap.com/v3/direction/driving") -> list:
     """
     将waypoints包装为driving_url urls
     :param host:
@@ -30,28 +31,32 @@ def navigating_url(origin: list, destination: list, waypoints: list = None,
     :param batch_size:
     :param strategy:
     :param output:
-    :param key:
+    :param keys:
     :param waypoints:
     :return:
     """
     if waypoints is None:
         waypoints = []
-    if key is None and register.keys:
-        key = register.keys
-    if isinstance(key, list):
-        key = random.choice(key)
+    if keys is None and register.keys:
+        keys = register.keys
+    elif isinstance(keys, str):
+        key = keys
+
     urls = []
     paths = [origin] + waypoints + [destination]
     if not waypoints:
+        if isinstance(keys, list):
+            key = random.choice(keys)
         urls.append(f"{host}?strategy={strategy}&origin={loc_to_str([origin])}&destination={loc_to_str([destination])}&output={output}&key={key}")
         return urls
     for idx in [(i, i + batch_size) for i in range(0, len(paths), batch_size)]:
+        if isinstance(keys, list):
+            key = random.choice(keys)
         tmp_points = paths[idx[0] - 1 if idx[0] > 1 else 0:idx[1]]
         if len(tmp_points) <= 2:
             urls.append(f"{host}?strategy={strategy}&origin={loc_to_str([tmp_points[0]])}&destination={loc_to_str([tmp_points[-1]])}&output={output}&key={key}")
         else:
-            urls.append(
-                f"{host}?strategy={strategy}&origin={loc_to_str([tmp_points[0]])}&destination={loc_to_str([tmp_points[-1]])}&waypoints={loc_to_str(tmp_points[1:-1])}&output={output}&key={key}")
+            urls.append(f"{host}?strategy={strategy}&origin={loc_to_str([tmp_points[0]])}&destination={loc_to_str([tmp_points[-1]])}&waypoints={loc_to_str(tmp_points[1:-1])}&output={output}&key={key}")
     return urls
 
 
@@ -108,21 +113,26 @@ def exchange_key(amap_url):
 
 
 async def do_async_request_navigating(session: aiohttp.ClientSession, urls, idx, data_list):
-    async with session.get(urls[idx], timeout=aiohttp.ClientTimeout(total=2)) as response:
-        try:
+    try:
+        async with session.get(urls[idx], timeout=aiohttp.ClientTimeout(total=2)) as response:
             data = await response.json()
             if data['infocode'] == '10000':
                 data_list[idx] = data
             else:
+                register.logger.warning(f"Autonavi Exchange URL:url_idx:{idx},url:{urls[idx]}")
                 # 再尝试换一个key获取一下
                 urls[idx] = exchange_key(urls[idx])
                 async with session.get(urls[idx], timeout=aiohttp.ClientTimeout(total=2)) as re_resp:
-                    data = await re_resp.json()
-                    if data['infocode'] == '10000':
-                        data_list[idx] = data
-                raise Exception(data['infocode'])
-        except Exception as e:
-            register.logger.warning(f"Autonavi Error:{e},url:{urls[idx]},url_idx:{idx}")
+                    new_data = await re_resp.json()
+                    if new_data['infocode'] == '10000':
+                        data_list[idx] = new_data
+                    else:
+                        urls[idx] = exchange_key(urls[idx])
+
+                        register.logger.warning(f"Autonavi Exchange URL But failed:url_idx:{idx},url:{urls[idx]}")
+                        raise KeyError(data['infocode'] + new_data['infocode'])
+    except Exception as e:
+        register.logger.warning(f"Autonavi Error:{traceback.format_exc()},url_idx:{idx},url:{urls[idx]}")
 
 
 def default_data_with_navigating_url(url, idx, data_list):
@@ -164,7 +174,6 @@ def futures_navigating(urls: list) -> dict:
     # event_loop.run_until_complete(asyncio.wait(all_tasks))
 
     # 异步io
-    event_loop.run_until_complete(async_request_navigating(urls, data_collections))
     event_loop.run_until_complete(async_request_navigating(urls, data_collections))
     # 获取结果,只获取 ['route']['paths'][0] ,也即只获取第一种策略的数据
     for idx in range(len(urls)):
