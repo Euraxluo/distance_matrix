@@ -41,7 +41,7 @@ def navigating_url(origin: list, destination: list, waypoints: list = None,
         keys = register.keys
     elif isinstance(keys, str):
         key = keys
-
+    
     urls = []
     paths = [origin] + waypoints + [destination]
     if not waypoints:
@@ -128,7 +128,7 @@ async def do_async_request_navigating(session: aiohttp.ClientSession, urls, idx,
                         data_list[idx] = new_data
                     else:
                         urls[idx] = exchange_key(urls[idx])
-
+                        
                         register.logger.warning(f"Autonavi Exchange URL But failed:url_idx:{idx},url:{urls[idx]}")
                         raise KeyError(data['infocode'] + new_data['infocode'])
     except Exception as e:
@@ -150,10 +150,11 @@ def default_data_with_navigating_url(url, idx, data_list):
     return data_list[idx]
 
 
-def futures_navigating(urls: list) -> dict:
+def futures_navigating(urls: list, amap: bool = True) -> dict:
     """
     异步 基于 drive url list 通过请求高德接口 获得 路径规划结果
     :param urls:
+    :param amap: 开关
     :return:
     """
     data_collections = [None] * len(urls)
@@ -172,46 +173,48 @@ def futures_navigating(urls: list) -> dict:
     # for idx in range(len(urls)):
     #     all_tasks.append(event_loop.run_in_executor(register.pool, request_navigating, urls[idx], idx, data_collections))
     # event_loop.run_until_complete(asyncio.wait(all_tasks))
-
+    
     # 异步io
-    event_loop.run_until_complete(async_request_navigating(urls, data_collections))
+    if amap:
+        event_loop.run_until_complete(async_request_navigating(urls, data_collections))
     # 获取结果,只获取 ['route']['paths'][0] ,也即只获取第一种策略的数据
     for idx in range(len(urls)):
         # 如果新url请求失败
         if not data_collections[idx]:
-            register.logger.error(f"futures_navigating request failed,new url:{urls[idx]},url_idx:{idx}")
+            if amap:
+                register.logger.error(f"futures_navigating request failed,new url:{urls[idx]},url_idx:{idx}")
             data_collections[idx] = default_data_with_navigating_url(urls[idx], idx, data_collections)
         api_data_result = data_collections[idx]
-
+        
         if not pack_data_result:
             pack_data_result = api_data_result
             pack_data_result['route']['paths'] = [pack_data_result['route']['paths'][0]]
         else:
             pack_data_result['route']['destination'] = api_data_result['route']['destination']
-
+            
             pack_data_result['route']['taxi_cost'] = str(
                 float(pack_data_result['route']['taxi_cost']) + float(api_data_result['route']['taxi_cost']))
-
+            
             pack_data_result['route']['paths'][0]['distance'] = str(
                 float(pack_data_result['route']['paths'][0]['distance']) + float(api_data_result['route']['paths'][0]['distance']))
-
+            
             pack_data_result['route']['paths'][0]['duration'] = str(
                 float(pack_data_result['route']['paths'][0]['duration']) + float(api_data_result['route']['paths'][0]['duration']))
-
+            
             pack_data_result['route']['paths'][0]['tolls'] = str(
                 float(pack_data_result['route']['paths'][0]['tolls']) + float(api_data_result['route']['paths'][0]['tolls']))
-
+            
             pack_data_result['route']['paths'][0]['toll_distance'] = str(
                 float(pack_data_result['route']['paths'][0]['toll_distance']) + float(
                     api_data_result['route']['paths'][0]['toll_distance']))
-
+            
             pack_data_result['route']['paths'][0]['steps'].extend(api_data_result['route']['paths'][0]['steps'])
-
+    
     return pack_data_result
 
 
 def futures_driving(origin: list, destination: list, waypoints: list = None, strategy=5, output="json", key: str = None,
-                    host: str = "https://restapi.amap.com/v3/direction/driving", batch_size: int = 12) -> dict:
+                    host: str = "https://restapi.amap.com/v3/direction/driving", batch_size: int = 12, amap: bool = True) -> dict:
     """
     异步进行导航url的构建,以及请求
     :param origin: [float,float]
@@ -231,7 +234,7 @@ def futures_driving(origin: list, destination: list, waypoints: list = None, str
     urls = navigating_url(host=host, origin=origin, destination=destination,
                           batch_size=batch_size,
                           strategy=strategy, waypoints=waypoints, output=output, keys=key)
-    return futures_navigating(urls=urls)
+    return futures_navigating(urls=urls, amap=amap)
 
 
 def driving_batch(origin: list, destination: list, waypoints: list = None, check_points: tuple = ("到达途经地", "到达目的地"),
@@ -298,7 +301,7 @@ def driving_batch(origin: list, destination: list, waypoints: list = None, check
             }
             waypoints_planning['steps'].append(step_tmcs)
             # print(waypoints_step[len(waypoints_planning['steps']) - 1][0], "=>", waypoints_step[len(waypoints_planning['steps']) - 1][1], step['polyline'], )
-
+        
         check_point = cur_check_point
-
+    
     return waypoints_planning

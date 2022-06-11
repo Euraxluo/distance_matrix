@@ -1027,5 +1027,5 @@ class TestHelper(TestCase):
 			print(time.perf_counter() - s)
 
 	def test_issue_3(self):
-		res = distance_matrix((116.223, 39.9057), (116.1747, 39.9437), (116.223, 39.9057),geo_wide=0)
+		res = distance_matrix((116.223, 39.9057), (116.1747, 39.9437), (116.223, 39.888),geo_wide=0,autonavi_config={'amap':False})
 		print(res)
