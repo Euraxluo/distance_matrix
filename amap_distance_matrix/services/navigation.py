@@ -38,7 +38,7 @@ def navigating_url(origin: list, destination: list, waypoints: list = None,
     if waypoints is None:
         waypoints = []
     if keys is None and register.keys:
-        keys = register.keys
+        keys = [register.keys_balance.next]
     elif isinstance(keys, str):
         key = keys
     
@@ -99,16 +99,11 @@ def exchange_key(amap_url):
     for i, token in enumerate(all_token):
         if token.startswith("key"):
             old_key = token.split('=')[-1]
-            try:
-                register.keys_deque.remove(old_key)
-            except ValueError:
-                ...
-            finally:
-                register.keys_deque.append(old_key)
+            register.keys_balance.reduce_weight(old_key)
             register.logger.error(f"futures_navigating request failed,key:{old_key},maybe need degradation")
             key_idx = i
     if key_idx > 0:
-        all_token[key_idx] = f"key={random.choice(register.keys)}"
+        all_token[key_idx] = f"key={register.keys_balance.next}"
     return "&".join(all_token)
 
 
@@ -230,7 +225,7 @@ def futures_driving(origin: list, destination: list, waypoints: list = None, str
     if waypoints is None:
         waypoints = []
     if key is None and register.keys:
-        key = random.choice(register.keys)
+        key = register.keys_balance.next
     urls = navigating_url(host=host, origin=origin, destination=destination,
                           batch_size=batch_size,
                           strategy=strategy, waypoints=waypoints, output=output, keys=key)

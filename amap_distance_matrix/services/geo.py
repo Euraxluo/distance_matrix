@@ -60,7 +60,7 @@ def geo_url(addr: str, city: str, keys: Union[List[str], str] = None):
     elif isinstance(keys, str):
         choice_key = keys
     elif keys is None and register.keys:
-        choice_key = random.choice(register.keys)
+        choice_key = register.keys_balance.next
     else:
         raise KeyError(f"addressing Exception: keys must Union[List[str], str],now is {keys}")
     return "https://restapi.amap.com/v3/geocode/geo?address=%s&city=%s&output=json&key=%s" % (addr, city, choice_key)

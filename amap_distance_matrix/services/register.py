@@ -12,13 +12,14 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import DeclarativeMeta, sessionmaker
 from contextlib import contextmanager
 from concurrent.futures import ThreadPoolExecutor
+from .smooth_weight import SmoothWeight
 
 
 class Register:
     """
     注册服务
     """
-    _amap_web_api_keys: deque = None  # 高德地图WebApiKey列表
+    _amap_web_api_keys: SmoothWeight = None  # 高德地图WebApiKey列表
     _session = None
     _pool_size = None
     _pool: ThreadPoolExecutor = None
@@ -32,7 +33,7 @@ class Register:
     _geohashing_keys = 'distance_matrix:geohashing_keys'
     _edge_key = 'distance_matrix:edge_hash'
     _geo_key = 'distance_matrix:geohashing'
-
+    
     @classmethod
     def setup(cls, keys: List[str], logger, pool_size: int = 10,
               osrm_host: str = None,
@@ -59,7 +60,12 @@ class Register:
         :param edge_key: edge storage in redis hashset
         :return:
         """
-        cls._amap_web_api_keys = deque(keys)
+        sw = SmoothWeight()
+        sw.remove_all()
+        for k in keys:
+            if k not in sw:
+                sw.add(k, keys.count(k))
+        cls._amap_web_api_keys = sw
         cls._logger = logger
         cls._osrm_host = osrm_host
         cls._geohashing_keys = geohashing_keys
@@ -72,21 +78,21 @@ class Register:
         if persistence_uri is not None:
             cls._persistence_uri = persistence_uri
             cls.setup_orm(database_log)
-
+    
     @classmethod
     def setup_orm(cls, database_log: bool = False):
         cls._orm_engine = create_engine(cls._persistence_uri, echo=database_log)
         cls.create_persistence_database()
         cls._orm_session = sessionmaker(autocommit=False, autoflush=False, bind=cls._orm_engine)
         cls._orm_base: DeclarativeMeta = declarative_base()
-
+    
     @classmethod
     def create_persistence_database(cls):
         create_str = f"CREATE DATABASE IF NOT EXISTS {cls._database} ;"
         cls._orm_engine.execute(create_str)
         cls._orm_engine.execute(f"USE {cls._database};")
         cls._orm_engine.execute(f"show tables;")
-
+    
     @classmethod
     def session(cls, pool_connections=3, max_retries=3):
         if cls._session:
@@ -97,69 +103,69 @@ class Register:
         cls._session.mount('http://', cls._adapter)
         cls._session.mount('https://', cls._adapter)
         return cls._session
-
+    
     @property
     def keys(self) -> list:
-        res = list(Register._amap_web_api_keys)
+        res = list(Register._amap_web_api_keys.i_list)
         if len(res) > 1:
             return res[0:-1]
         else:
             return res
-
+    
     @property
-    def keys_deque(self) -> deque:
+    def keys_balance(self) -> SmoothWeight:
         return Register._amap_web_api_keys
-
+    
     @property
     def pool_size(self) -> int:
         return Register._pool_size
-
+    
     @property
     def logger(self):
         return Register._logger
-
+    
     @property
     def redis(self) -> redis.Redis:
         return Register._redis
-
+    
     @property
     def osrm_host(self) -> str:
         return Register._osrm_host
-
+    
     @property
     def persistence_uri(self) -> str:
         return Register._persistence_uri
-
+    
     @property
     def orm_base(self) -> DeclarativeMeta:
         return Register._orm_base
-
+    
     @property
     def orm_engine(self):
         return Register._orm_engine
-
+    
     @contextmanager
     def orm(self):
         db = Register._orm_session()
         yield db
         db.close()
-
+    
     @property
     def geohashing_keys(self):
         return Register._geohashing_keys
-
+    
     @property
     def edge_key(self):
         return Register._edge_key
-
+    
     @property
     def geo_key(self):
         return Register._geo_key
-
+    
     @property
     def pool(self):
         return Register._pool
-
+    
     @classmethod
     def shutdown(cls):
         cls._pool.shutdown()  # 关闭自己申请的线程池
