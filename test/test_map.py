@@ -100,7 +100,7 @@ class TestAMap(TestCase):
     
 
     def test_osrm(self):
-        res = geo_addr_city([("天安门", "北京"), ("黑桥公园", "北京"), ("北宫镇", "北京"), ("大兴机场", "北京")])  # ,
+        res = geo_addr_city([("天安门", "北京"),  ("大兴机场", "北京")])  # ,
         # res = geo_addr_city([("春熙路", "成都"), ("双流国际机场", "成都")])  # ,
         # res = geo_addr_city([("天安门", "北京"), ("天安门", "北京")])  # ,
         print(res)
